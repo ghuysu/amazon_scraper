@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            width: calc(50% - 15px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .result {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .result table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .result th, .result td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .result th {
+            background-color: #f2f2f2;
+        }
+
+        .result th:first-child, .result td:first-child {
+            text-align: left;
+        }
+
+        .result img {
+            max-width: 100px;
+            max-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Amazon Scraper</h1>
+    <div class="container">
+        <form id="search_form">
+            <label for="search_key">Search Key:</label>
+            <input type="text" id="search_key" name="search_key" required>
+            <label for="max_product">Max Products:</label>
+            <input type="text" id="max_product" name="max_product" required>
+            <input type="submit" value="Search">
+        </form>
+        <div id="search_result" class="result" style="display: none;">
+            <table id="result_table">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Price</th>
+                        <th>Rating</th>
+                        <th>Image</th>
+                        <th>Description</th>
+                        <th>Url</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        document.getElementById("search_form").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent the form from submitting
+
+            // Get the search key and max product from the form
+            var searchKey = document.getElementById("search_key").value;
+            var maxProduct = document.getElementById("max_product").value;
+
+            // Create a data object to send the data
+            var data = {
+                search_key: searchKey,
+                max_product: maxProduct
+            };
+
+            // Send a POST request to the server
+            fetch("/search", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the search results
+                var resultTableBody = document.querySelector("#result_table tbody");
+                resultTableBody.innerHTML = ""; // Clear previous results
+
+                data.forEach(product => {
+                    var row = `
+                        <tr>
+                            <td>${product.title}</td>
+                            <td>${product.price}</td>
+                            <td>${product.rating}</td>
+                            <td><img src="${product.image}" alt="${product.title}"></td>
+                            <td>${product.description}</td>
+                            <td><a href="${product.url}" target="_blank">Link</a></td>
+                        </tr>
+                    `;
+                    resultTableBody.innerHTML += row;
+                });
+
+                // Show the search result section
+                document.getElementById("search_result").style.display = "block";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+
+
+</body>
+</html>
