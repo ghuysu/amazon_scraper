@@ -1,14 +1,12 @@
-import os
-
 from flask import Flask, request, jsonify, render_template
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from pyngrok import ngrok
+import openpyxl
+
 
 app = Flask(__name__)
-ngrok_auth_token = os.environ.get("NGROK_AUTH_TOKEN")
-ngrok_port = os.environ.get("NGROK_PORT")
 
 custom_headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -21,6 +19,7 @@ custom_headers = {
 visited_urls = set()
 number = 0
 max_products = 0
+workbook = openpyxl.Workbook()
 
 def get_product_info(url):
     response = requests.get(url, headers=custom_headers)
@@ -95,13 +94,71 @@ def parse_listing(listing_url):
 
     return page_data
 
+def dataToSheet(data):
+  # Tạo một workbook mới
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+
+    # Ghi tiêu đề (header) vào hàng đầu tiên
+    worksheet.append(['Title', 'Price', 'Rating', 'Image URL', 'Description', 'Product URL'])
+
+    # Ghi dữ liệu vào các hàng tiếp theo
+    for product in data:
+        worksheet.append([
+            product['title'],
+            product['price'],
+            product['rating'],
+            product['image'],
+            product['description'],
+            product['url']
+        ])
+
+    # Sắp xếp dữ liệu theo giá tăng dần
+    sorted_data = sorted(data, key=lambda x: (x['price'] or float('inf')))
+
+    # Tạo một worksheet mới để chứa dữ liệu đã sắp xếp
+    sorted_worksheet = workbook.create_sheet('Sorted by Price')
+    sorted_worksheet.append(['Title', 'Price', 'Rating', 'Image URL', 'Description', 'Product URL'])
+
+    # Ghi dữ liệu đã sắp xếp vào worksheet mới
+    for product in sorted_data:
+        sorted_worksheet.append([
+            product['title'],
+            product['price'],
+            product['rating'],
+            product['image'],
+            product['description'],
+            product['url']
+        ])
+
+
+    # Tạo một worksheet mới để chứa dữ liệu đã sắp xếp theo rating
+    sorted_by_rating_worksheet = workbook.create_sheet('Sorted by Rating')
+    sorted_by_rating_worksheet.append(['Title', 'Price', 'Rating', 'Image URL', 'Description', 'Product URL'])
+
+    # Sắp xếp dữ liệu theo rating giảm dần
+    sorted_by_rating_data = sorted(data, key=lambda x: (float(x['rating'] or 0) if x['rating'] else 0), reverse=True)
+
+    # Ghi dữ liệu đã sắp xếp theo rating vào worksheet mới
+    for product in sorted_by_rating_data:
+        sorted_by_rating_worksheet.append([
+            product['title'],
+            product['price'],
+            product['rating'],
+            product['image'],
+            product['description'],
+            product['url']
+        ])
+    return workbook
+
 def scrape_products(search_key, max_product):
     global max_products
+    global workbook
     max_products = max_product
 
     search_url = f"https://www.amazon.com/s?k={search_key}"
     data = parse_listing(search_url)
-
+    workbook = dataToSheet(data)
     return data
 
 @app.route('/')
@@ -115,12 +172,19 @@ def search():
     print({"search_key": search_key, "max_product": max_product})
     data = scrape_products(search_key, max_product)
     return jsonify(data)
+from flask import send_file
 
+@app.route('/download')
+def download():
+    global workbook
+    workbook.save("products.xlsx")
+    return send_file("products.xlsx", as_attachment=True)
 
 if __name__ == '__main__':
     # Khởi tạo ngrok
-    ngrok.set_auth_token(ngrok_auth_token)
-    ngrok_tunnel = ngrok.connect(ngrok_port)
+    ngrok.kill()
+    ngrok.set_auth_token("2ezC9L1TY5mOR01RIv4G9WZqt3j_2C41oGe1BtdC8cwfaSJW4")
+    ngrok_tunnel = ngrok.connect(5000)
     print(f'Public URL: {ngrok_tunnel.public_url}')
 
     # Chạy ứng dụng Flask

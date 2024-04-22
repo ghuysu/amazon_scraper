@@ -46,7 +46,7 @@
             display: inline-block;
         }
 
-        input[type="submit"] {
+        input[type="submit"], input[type="button"] {
             background-color: #007bff;
             color: #fff;
             border: none;
@@ -54,9 +54,10 @@
             border-radius: 5px;
             cursor: pointer;
             display: block;
+            margin-bottom: 10px;
         }
 
-        input[type="submit"]:hover {
+        input[type="submit"]:hover, input[type="button"]:hover {
             background-color: #0056b3;
         }
 
@@ -116,6 +117,7 @@
                 <tbody>
                 </tbody>
             </table>
+            <input type="button" id="download_button" value="Download">
         </div>
     </div>
     <script>
@@ -167,8 +169,27 @@
                 console.error('Error:', error);
             });
         });
+
+        // Add event listener to download button
+        document.getElementById("download_button").addEventListener("click", function() {
+            // Send a GET request to the server to download the Excel file
+            fetch("/download")
+            .then(response => response.blob())
+            .then(blob => {
+                // Create a temporary link element
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = "products.xlsx";
+                document.body.appendChild(a);
+                a.click(); // Simulate a click event to download the file
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
     </script>
-
-
 </body>
 </html>
